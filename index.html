@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeTogether - Collaborative Coding Platform</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-logo">
+          <i class="fas fa-code"></i>
+          <span>CodeTogether</span>
+        </div>
+        <div class="nav-links">
+          <a href="#" onclick="showSection('home')" class="nav-link active"
+            >Home</a
+          >
+          <a href="#" onclick="showSection('problems')" class="nav-link"
+            >Problems</a
+          >
+          <a href="#" onclick="showSection('leaderboard')" class="nav-link"
+            >Leaderboard</a
+          >
+          <a
+            href="#"
+            onclick="logout()"
+            class="nav-link logout-btn"
+            id="logoutBtn"
+            style="display: none"
+            >Logout</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <!-- Login/Signup Section -->
+    <div id="authSection" class="auth-section">
+      <div class="auth-container">
+        <div class="auth-toggle">
+          <button class="auth-tab active" onclick="showAuth('login')">
+            Login
+          </button>
+          <button class="auth-tab" onclick="showAuth('signup')">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form">
+          <h2>Welcome Back!</h2>
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <i class="fas fa-user"></i>
+              <input
+                type="text"
+                id="loginUsername"
+                placeholder="Username"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <i class="fas fa-lock"></i>
+              <input
+                type="password"
+                id="loginPassword"
+                placeholder="Password"
+                required
+              />
+            </div>
+            <button type="submit" class="auth-btn">Login</button>
+          </form>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signupForm" class="auth-form" style="display: none">
+          <h2>Join CodeTogether!</h2>
+          <form onsubmit="handleSignup(event)">
+            <div class="form-group">
+              <i class="fas fa-user"></i>
+              <input
+                type="text"
+                id="signupUsername"
+                placeholder="Username"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <i class="fas fa-envelope"></i>
+              <input
+                type="email"
+                id="signupEmail"
+                placeholder="Email"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <i class="fas fa-lock"></i>
+              <input
+                type="password"
+                id="signupPassword"
+                placeholder="Password"
+                required
+              />
+            </div>
+            <button type="submit" class="auth-btn">Sign Up</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="main-content" style="display: none">
+      <!-- Home Section -->
+      <section id="homeSection" class="section">
+        <div class="hero">
+          <h1>Code Together, Solve Together</h1>
+          <p>
+            Join rooms with friends and solve coding challenges collaboratively!
+          </p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="showCreateRoom()">
+              <i class="fas fa-plus"></i> Create Room
+            </button>
+            <button class="btn btn-secondary" onclick="showJoinRoom()">
+              <i class="fas fa-sign-in-alt"></i> Join Room
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Rooms Display -->
+        <div class="active-rooms" id="activeRooms">
+          <h3>Active Rooms</h3>
+          <div class="rooms-grid" id="roomsGrid">
+            <!-- Active rooms will be displayed here -->
+          </div>
+        </div>
+
+        <!-- Room Actions -->
+        <div id="createRoomModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('createRoomModal')"
+              >&times;</span
+            >
+            <h3>Create New Room</h3>
+            <form onsubmit="createRoom(event)">
+              <div class="form-group">
+                <input
+                  type="text"
+                  id="roomName"
+                  placeholder="Room Name"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <input
+                  type="text"
+                  id="roomDescription"
+                  placeholder="Room Description (optional)"
+                />
+              </div>
+              <div class="form-group">
+                <select id="roomDifficulty" required>
+                  <option value="">Select Difficulty</option>
+                  <option value="easy">Easy (10 points)</option>
+                  <option value="medium">Medium (25 points)</option>
+                  <option value="hard">Hard (50 points)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="roomPrivate" /> Private Room
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Room</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="joinRoomModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('joinRoomModal')"
+              >&times;</span
+            >
+            <h3>Join Room</h3>
+            <div class="join-tabs">
+              <button class="tab-btn active" onclick="showJoinTab('code')">
+                By Room Code
+              </button>
+              <button class="tab-btn" onclick="showJoinTab('browse')">
+                Browse Rooms
+              </button>
+            </div>
+
+            <!-- Join by Code -->
+            <div id="joinByCode" class="join-tab-content">
+              <form onsubmit="joinRoomByCode(event)">
+                <div class="form-group">
+                  <input
+                    type="text"
+                    id="roomCode"
+                    placeholder="Enter 6-digit Room Code (e.g., ABC123)"
+                    required
+                    maxlength="6"
+                  />
+                </div>
+                <button type="submit" class="btn btn-primary">Join Room</button>
+              </form>
+            </div>
+
+            <!-- Browse Rooms -->
+            <div
+              id="browseRooms"
+              class="join-tab-content"
+              style="display: none"
+            >
+              <div class="available-rooms" id="availableRooms">
+                <!-- Available rooms will be listed here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        
+        <!-- Current Room Info -->
+        <div
+          id="currentRoomInfo"
+          class="current-room-info"
+          style="display: none"
+        >
+          <div class="room-info-card">
+            <h3 id="currentRoomName">Room Name</h3>
+            <p id="currentRoomDesc">Room Description</p>
+            <div class="room-meta">
+              <span class="room-code"
+                >Code: <strong id="displayRoomCode">ABC123</strong></span
+              >
+              <span class="room-difficulty" id="displayRoomDifficulty"
+                >Easy</span
+              >
+              <span class="room-participants"
+                >Participants: <span id="participantCount">1</span></span
+              >
+            </div>
+            <div class="room-actions">
+              <button class="btn btn-primary" onclick="startSolving()">
+                Start Solving
+              </button>
+              <button class="btn btn-secondary" onclick="leaveRoom()">
+                Leave Room
+              </button>
+              <button class="btn btn-small" onclick="copyRoomCode(event)">
+                Copy Code
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Problems Section -->
+      <section id="problemsSection" class="section" style="display: none">
+        <div class="container">
+          <h2>Coding Problems</h2>
+          <div class="problems-grid" id="problemsGrid">
+            <!-- Problems will be loaded here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Problem Solving Section -->
+      <section id="solvingSection" class="section" style="display: none">
+        <div class="solving-container">
+          <div class="problem-panel">
+            <div class="problem-header">
+              <h3 id="problemTitle">Problem Title</h3>
+              <div class="problem-meta">
+                <span id="problemDifficulty" class="difficulty-badge"
+                  >Easy</span
+                >
+                <span id="roomInfo" class="room-info"
+                  >Room: <span id="currentRoom">N/A</span></span
+                >
+              </div>
+            </div>
+            <div class="problem-content">
+              <div id="problemDescription">
+                Problem description will appear here...
+              </div>
+              <div class="problem-examples" id="problemExamples"></div>
+            </div>
+            <div class="participants" id="participants">
+              <h4>Participants:</h4>
+              <div id="participantsList"></div>
+            </div>
+
+            <!-- Room Chat -->
+            <div class="room-chat" id="roomChat" style="display: none">
+              <h4>Room Chat</h4>
+              <div class="chat-messages" id="chatMessages"></div>
+              <div class="chat-input">
+                <input
+                  type="text"
+                  id="messageInput"
+                  placeholder="Type a message..."
+                  onkeypress="handleChatKeypress(event)"
+                />
+                <button class="btn btn-small" onclick="sendMessage()">
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <div class="code-header-left">
+                <h4>Your C++ Solution</h4>
+                <div class="language-info">
+                  <i class="fas fa-code"></i>
+                  <span>C++17</span>
+                </div>
+              </div>
+              <div class="code-actions">
+                <button
+                  class="btn btn-small"
+                  onclick="showTestCases()"
+                  id="testCasesBtn"
+                >
+                  <i class="fas fa-list"></i> Test Cases
+                </button>
+                <button class="btn btn-small" onclick="runCode()" id="runBtn">
+                  <i class="fas fa-play"></i> Run
+                </button>
+                <button
+                  class="btn btn-small btn-success"
+                  onclick="submitCode()"
+                  id="submitBtn"
+                >
+                  <i class="fas fa-check"></i> Submit
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Input Panel -->
+            <div
+              class="custom-input-panel"
+              id="customInputPanel"
+              style="display: none"
+            >
+              <h5>Custom Input:</h5>
+              <textarea
+                id="customInput"
+                class="custom-input"
+                placeholder="Enter custom input for testing..."
+              ></textarea>
+              <button class="btn btn-small" onclick="runWithCustomInput()">
+                Run with Input
+              </button>
+            </div>
+
+            <!-- Test Cases Modal -->
+            <div id="testCasesModal" class="modal">
+              <div class="modal-content">
+                <span class="close" onclick="closeModal('testCasesModal')"
+                  >&times;</span
+                >
+                <h3>Test Cases</h3>
+                <div id="testCasesContent"></div>
+              </div>
+            </div>
+
+            <textarea
+              id="codeEditor"
+              class="code-editor"
+              placeholder="// Write your C++ solution here...
+// Example:
+// #include <iostream>
+// #include <vector>
+// using namespace std;
+
+// Your function here"
+            ></textarea>
+
+            <!-- Output Panel -->
+            <div class="output-panel">
+              <div class="output-header">
+                <h4>Output</h4>
+                <div class="output-actions">
+                  <button class="btn btn-tiny" onclick="toggleCustomInput()">
+                    <i class="fas fa-keyboard"></i> Custom Input
+                  </button>
+                  <button class="btn btn-tiny" onclick="clearOutput()">
+                    <i class="fas fa-trash"></i> Clear
+                  </button>
+                </div>
+              </div>
+              <div id="output" class="output"></div>
+
+              <!-- Test Results -->
+              <div id="testResults" class="test-results" style="display: none">
+                <h5>Test Results:</h5>
+                <div id="testResultsContent"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard Section -->
+      <section id="leaderboardSection" class="section" style="display: none">
+        <div class="container">
+          <div class="leaderboard-header">
+            <h2>Leaderboard</h2>
+            <div class="leaderboard-toggle" id="leaderboardToggle">
+              <button
+                class="btn btn-small"
+                onclick="toggleLeaderboardView()"
+                id="toggleLeaderboardBtn"
+              >
+                <i class="fas fa-globe"></i> Switch to Global
+              </button>
+            </div>
+          </div>
+          <div class="leaderboard-table">
+            <table id="leaderboardTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Username</th>
+                  <th>Problems Solved</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
