@@ -56,7 +56,7 @@ A simple and attractive web-based coding platform where users can create rooms, 
 - A modern web browser (Chrome, Firefox, Safari, Edge)
 ---
 
-### 🛠 Installation
+###  Installation
 
 ```bash
 # 1. Clone the repository
